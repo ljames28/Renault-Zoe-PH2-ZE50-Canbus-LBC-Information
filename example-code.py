@@ -66,24 +66,14 @@ class BMSData:
     bms_state = None
     balance_switches = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-    request_fan = 0
     mileage = None
     busbars = None
     slave_failures = None
-    fan_duty = None
-    fan_period = None
-    fan_control = None
-    fan_speed = None
     temporisation = 0
     time = None
     pack_time = None
     soc_min = None
     soc_max = None
-    asic_1 = None
-    asic_2 = None
-    asic_3 = None
-    asic_4 = None
-    asic_5 = None
 
     limit_miniumum_temperature = 2
     limit_maxiumum_temperature = 40
@@ -274,8 +264,6 @@ class ZoeCanHandler:
             self.controller.bmsdata.balance_switches[11] = message.data[1] != 0  # Index 11
 
         # Requests/mileage/cooling
-        elif message.data[2] == 0x91 and message.data[3] == 0xC9:
-            self.controller.bmsdata.request_fan = message.data[4]
         elif message.data[2] == 0x91 and message.data[3] == 0xCC:
             appended = self.append_hex_four(message.data[4], message.data[5], message.data[6], message.data[7])
             self.controller.bmsdata.busbars = appended
@@ -286,14 +274,6 @@ class ZoeCanHandler:
             appended = self.append_hex_four(message.data[4], message.data[5], message.data[6], message.data[7])
             adjusted = round((appended - 2147483648) * 0.03125, 3)
             self.controller.bmsdata.mileage = adjusted
-        elif message.data[2] == 0x91 and message.data[3] == 0xF4:
-            appended = self.append_hex(message.data[4], message.data[5])
-            self.controller.bmsdata.fan_duty = appended
-        elif message.data[2] == 0x91 and message.data[3] == 0xF5:
-            self.controller.bmsdata.fan_period = message.data[4]
-        elif message.data[2] == 0x91 and message.data[3] == 0xC9:
-            self.controller.bmsdata.fan_control = message.data[4]
-        elif message.data[2] == 0x91 and message.data[3] == 0x2E:
             self.controller.bmsdata.speed = message.data[4]
         elif message.data[2] == 0x92 and message.data[3] == 0x81:
             self.controller.bmsdata.temporisation = message.data[4]
@@ -301,17 +281,6 @@ class ZoeCanHandler:
             self.controller.bmsdata.time = self.append_hex_three(message.data[4], message.data[5], message.data[6])
         elif message.data[2] == 0x92 and message.data[3] == 0xC1:
             self.controller.bmsdata.pack_time = self.append_hex_three(message.data[4], message.data[5], message.data[6])
-
-        elif message.data[2] == 0x92 and message.data[3] == 0x7B:
-            self.controller.bmsdata.asic_1 = self.append_hex(message.data[4], message.data[5])
-        elif message.data[2] == 0x92 and message.data[3] == 0x7C:
-            self.controller.bmsdata.asic_2 = message.data[4]
-        elif message.data[2] == 0x92 and message.data[3] == 0x7D:
-            self.controller.bmsdata.asic_3 = message.data[4]
-        elif message.data[2] == 0x92 and message.data[3] == 0x7E:
-            self.controller.bmsdata.asic_4 = message.data[4]
-        elif message.data[2] == 0x92 and message.data[3] == 0x7F:
-            self.controller.bmsdata.asic_5 = message.data[4]
 
         # Cell Voltages
         if message.data[2] == 0x90 and message.data[3] >= 0x21 and message.data[3] <= 0x83:
@@ -403,7 +372,6 @@ class ZoeCanHandler:
             time.sleep(1)
 
     Payload_373 = [0xC1, 0x40, 'ALT', 'ALT', 0x0, 0x1, 0xff, 0xe3]
-    Payload_375 = [0x02, 0x29, 0x00, 0xBF, 0xFE, 0x64, 0x0, 0xff]
 
     def frame_sending_100ms_thread(self):
         print("Starting to loop 100ms frame_sending")
@@ -443,7 +411,8 @@ class ZoeCanHandler:
             self.bus.send(can.Message(arbitration_id=0x373, data=self.Payload_373, is_extended_id=False))
 
             # 375 HEVC Statusish.
-            self.bus.send(can.Message(arbitration_id=0x375, data=self.Payload_375, is_extended_id=False))
+            Payload_375 = [0x02, 0x29, 0x00, 0xBF, 0xFE, 0x64, 0x0, 0xff]
+            self.bus.send(can.Message(arbitration_id=0x375, data=Payload_375, is_extended_id=False))
 
             # 376 Distance/Time. Accuracy is important
             Payload_376 = [Year_seg, Hour_seg, Minutes_seg, Year_seg, Hour_seg, Minutes_seg, 0x4A, 0x54]
@@ -462,8 +431,7 @@ class ZoeCanHandler:
             self.bus.send(can.Message(arbitration_id=0x4CE, data=Payload_4CE, is_extended_id=False))
 
             # 4FB Relay ish(missing on DG)
-            Segment_X_4FB = 0x04  # Only seen 0x4
-            Payload_4FB = [counter, 0x0, Segment_X_4FB, 0x00, 0x00]
+            Payload_4FB = [counter, 0x0, 0x04, 0x00, 0x00]
             Payload_4FB.insert(5, self.generate_checksum(Payload_4FB, 0x82))
             self.bus.send(can.Message(arbitration_id=0x4FB, data=Payload_4FB, is_extended_id=False))
 
@@ -479,15 +447,12 @@ class ZoeCanHandler:
             counter = self.increase_to_16(counter)
 
             # 0EE Pedal
-            Pedal_1 = 0x00
-            Pedal_2 = 0x00
-            Payload_0EE = [0x32, 0x03, 0x20, 0xAA, Pedal_1, Pedal_2, counter]
+            Payload_0EE = [0x32, 0x03, 0x20, 0xAA, 0x00, 0x00, counter]
             Payload_0EE.insert(7, self.generate_checksum(Payload_0EE, 0xAC))
             self.bus.send(can.Message(arbitration_id=0x0EE, data=Payload_0EE, is_extended_id=False))
 
-            # OF5 Current ?
-            OF5_Start = 0x7C  # 7D Common
-            Payload_0F5 = [OF5_Start, counter, 0xff, 0xD7, 0xF8, 0x7D, 0x10]
+            # OF5 Current?
+            Payload_0F5 = [0x7C, counter, 0xff, 0xD7, 0xF8, 0x7D, 0x10]
             Payload_0F5.insert(2, self.generate_checksum(Payload_0F5, 0x16))
             self.bus.send(can.Message(arbitration_id=0x0F5, data=Payload_0F5, is_extended_id=False))
 
@@ -541,15 +506,15 @@ class ZoeCanHandler:
             ["energy_complete", [0x03, 0x22, 0x92, 0x10, 0xff, 0xff, 0xff, 0xff]],
             ["energy_partial", [0x03, 0x22, 0x92, 0x15, 0xff, 0xff, 0xff, 0xff]],
 
-            ["request_fan", [0x03, 0x22, 0x91, 0xC9, 0xff, 0xff, 0xff, 0xff]],  # 04 [62 91 C9] [00] AA AA AA or no reply
+            # ["request_fan", [0x03, 0x22, 0x91, 0xC9, 0xff, 0xff, 0xff, 0xff]],  # 04 [62 91 C9] [00] AA AA AA or no reply
 
             ["slave_failures", [0x03, 0x22, 0x91, 0x29, 0xff, 0xff, 0xff, 0xff]],  # [07] [62 91 29] [00 00 00 00]
             ["mileage", [0x03, 0x22, 0x91, 0xCF, 0xff, 0xff, 0xff, 0xff]],  # [07] [62 91 CF] 96 B1 E0 3D = 2528239677=11,898,625km [07] [62 91 CF] 97 17 99 C0 2534906304=12,106,958km
 
-            ["fan_speed", [0x03, 0x22, 0x91, 0x2E, 0xff, 0xff, 0xff, 0xff]],  #
-            ["fan_period", [0x03, 0x22, 0x91, 0xF4, 0xff, 0xff, 0xff, 0xff]],  # 05 [62 91 F4] [03 E8] AA AA
-            ["fan_control", [0x03, 0x22, 0x91, 0xC9, 0xff, 0xff, 0xff, 0xff]],
-            ["fan_duty", [0x03, 0x22, 0x91, 0xF5, 0xff, 0xff, 0xff, 0xff]],  # 04 [62 91 F5] [03] AA AA AA
+            # ["fan_speed", [0x03, 0x22, 0x91, 0x2E, 0xff, 0xff, 0xff, 0xff]],  #
+            # ["fan_period", [0x03, 0x22, 0x91, 0xF4, 0xff, 0xff, 0xff, 0xff]],  # 05 [62 91 F4] [03 E8] AA AA
+            # ["fan_control", [0x03, 0x22, 0x91, 0xC9, 0xff, 0xff, 0xff, 0xff]],
+            # ["fan_duty", [0x03, 0x22, 0x91, 0xF5, 0xff, 0xff, 0xff, 0xff]],  # 04 [62 91 F5] [03] AA AA AA
 
             ["temporisation", [0x03, 0x22, 0x92, 0x81, 0xff, 0xff, 0xff, 0xff]],  # 04 62 92 5A 00 AA AA AA
             ["time", [0x03, 0x22, 0x92, 0x61, 0xff, 0xff, 0xff, 0xff]],  #
@@ -557,11 +522,11 @@ class ZoeCanHandler:
             ["soc_min", [0x03, 0x22, 0x91, 0xB9, 0xff, 0xff, 0xff, 0xff]],  #
             ["soc_max", [0x03, 0x22, 0x91, 0xBA, 0xff, 0xff, 0xff, 0xff]],  #
 
-            ["asic1", [0x03, 0x22, 0x92, 0x7B, 0xff, 0xff, 0xff, 0xff]],  #
-            ["asic2", [0x03, 0x22, 0x92, 0x7C, 0xff, 0xff, 0xff, 0xff]],  #
-            ["asic3", [0x03, 0x22, 0x92, 0x7D, 0xff, 0xff, 0xff, 0xff]],  #
-            ["asic4", [0x03, 0x22, 0x92, 0x7E, 0xff, 0xff, 0xff, 0xff]],  #
-            ["asic5", [0x03, 0x22, 0x92, 0x7F, 0xff, 0xff, 0xff, 0xff]],  #
+            # ["asic1", [0x03, 0x22, 0x92, 0x7B, 0xff, 0xff, 0xff, 0xff]],  #
+            # ["asic2", [0x03, 0x22, 0x92, 0x7C, 0xff, 0xff, 0xff, 0xff]],  #
+            # ["asic3", [0x03, 0x22, 0x92, 0x7D, 0xff, 0xff, 0xff, 0xff]],  #
+            # ["asic4", [0x03, 0x22, 0x92, 0x7E, 0xff, 0xff, 0xff, 0xff]],  #
+            # ["asic5", [0x03, 0x22, 0x92, 0x7F, 0xff, 0xff, 0xff, 0xff]],  #
         ]
 
         try:
