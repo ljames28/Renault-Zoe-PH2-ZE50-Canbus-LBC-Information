@@ -1,4 +1,4 @@
-# Zoe PH2 ZE50 EV Canbus / LBC Information
+# Renault Zoe PH2 ZE50 Canbus / LBC Information
  
 This repository contains information about the ZE50 Renault Zoe PH2 Pack and how to interface with it.
 
