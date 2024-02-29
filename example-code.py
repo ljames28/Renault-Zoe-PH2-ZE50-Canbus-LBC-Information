@@ -6,7 +6,6 @@
 # https://www.waveshare.com/wiki/2-CH_CAN_HAT
 # https://pushevs.com/2020/05/14/new-generation-renault-zoe-battery-details/
 
-
 # Zoe is physically on can0
 # nominal_cell_voltage = 3.6
 # nominal_pack_voltage = 350
@@ -29,10 +28,9 @@ import RPi.GPIO as GPIO
 import struct
 from crccheck.crc import Crc8Base
 
-
 GPIO.setmode(GPIO.BOARD)
 
-hnn
+
 class BMSData:
     charge_discharge_allowed = False
     soc = None
@@ -143,7 +141,6 @@ class ZoeCanHandler:
             return
 
         self.last_message_received = helper.get_timestamp()
-
 
         if message.data[2] == 0x90 and message.data[3] == 0x01:
             appended = self.append_hex(message.data[4], message.data[5])
@@ -266,17 +263,15 @@ class ZoeCanHandler:
         elif message.data[0] == 0x23:
             for index, seg in enumerate(message.data):
                 if index < 4:
-                    continue #First few segs are length then irellevant
-                self.controller.bmsdata.balance_switches[index - 4] = seg != 0 #Index 0-3
+                    continue  # First few segs are length then irellevant
+                self.controller.bmsdata.balance_switches[index - 4] = seg != 0  # Index 0-3
         elif message.data[0] == 0x24:
             for index, seg in enumerate(message.data):
                 if index < 1:
                     continue  # First seg is length
-                self.controller.bmsdata.balance_switches[index + 3] = seg != 0 #Index 4-10
+                self.controller.bmsdata.balance_switches[index + 3] = seg != 0  # Index 4-10
         elif message.data[0] == 0x25:
-            self.controller.bmsdata.balance_switches[11] = message.data[1] != 0 #Index 11
-
-
+            self.controller.bmsdata.balance_switches[11] = message.data[1] != 0  # Index 11
 
         # Requests/mileage/cooling
         elif message.data[2] == 0x91 and message.data[3] == 0xC9:
@@ -339,7 +334,6 @@ class ZoeCanHandler:
                 "value": adjusted
             }]
 
-
     def append_hex(self, a, b):  # Append two hex values together like a string
         return (a << 8) | b
 
@@ -377,12 +371,6 @@ class ZoeCanHandler:
         else:
             return 0
 
-    def increase_hex_full(self, in_int):
-        if in_int < 255:
-            return in_int + 1
-        else:
-            return 1
-
     def generate_checksum(self, payload, crc_xor):
         our_payload = payload
         if len(our_payload) == 5:
@@ -396,11 +384,6 @@ class ZoeCanHandler:
         crc._xor_output = crc_xor
         output_int = crc.calc(our_payload)
         return output_int
-
-    def slow_increment(self, value, divisor):
-        if self.long_counter_100ms % divisor == 0:
-            return self.increase_hex_full(value)
-        return value
 
     def frame_sending_1000ms_thread(self):
         print("Starting to loop 1000ms frame_sending")
@@ -635,7 +618,6 @@ class Penthouse:
         import Adafruit_PCA9685
         self.pwm = Adafruit_PCA9685.PCA9685()
         self.pwm.set_pwm_freq(1000)
-
 
     def disable_contactor(self):
         # print("Opening contactor")
