@@ -1,6 +1,10 @@
 # Zoe PH2 ZE50 EV Canbus / LBC Information
  
-This repository contains information about the ZE50 Renault Zoe PH2 Pack. There are CAN bus logs taken from a Zoe PH2 ZE50 car. They were captured on the 'HEV-CAN' near the battery. The 'HEV-CAN' includes the BMS(LBC 938), HEVC(946) and PEC(2325).
+This repository contains information about the ZE50 Renault Zoe PH2 Pack and how to interface with it.
+
+![Pack (Small)](https://github.com/ljames28/Zoe-PH2-EV-Canbus-Information/assets/344266/4b04b741-5c0f-43fb-8675-b2b896fcf85e)
+
+There are CAN bus logs taken from a Zoe PH2 ZE50 car that were captured on the 'HEV-CAN' near the battery. The 'HEV-CAN' includes the BMS(LBC 938), HEVC(946) and PEC(2325).
 
 There is a can frames Excel file, which details exactly which frames the LBC (Lithium Battery Controller) listens to, as many bus frames are irrelevant to the LBC
 
@@ -21,7 +25,12 @@ You will want to reference the helpful 29bit frame file here https://github.com/
 
 
 
-#Commands
+# Commands
 
 NVROL Reset: "cansend can1 18DADBF1#021003AAAAAAAAAA && sleep 0.1 &&  cansend can1 18DADBF1#043101B00900AAAA"
+
 Enable temporisation before sleep: "cansend can1 18DADBF1#021003AAAAAAAAAA && sleep 0.1 &&   cansend can1 18DADBF1#042E928101AAAAAA"
+
+# Thanks
+
+This project was only possible thanks to the work of [@rand12345](https://github.com/rand12345), CAN bus sniffing on another ZE50
